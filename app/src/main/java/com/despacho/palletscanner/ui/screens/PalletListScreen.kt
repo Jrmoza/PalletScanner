@@ -14,7 +14,10 @@ import androidx.compose.ui.unit.dp
 import com.despacho.palletscanner.data.models.Pallet
 import com.despacho.palletscanner.viewmodels.MainViewModel
 import com.despacho.palletscanner.ui.components.PalletEditDialog
-
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.runtime.LaunchedEffect
+import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalletListScreen(
@@ -27,6 +30,11 @@ fun PalletListScreen(
     // NUEVOS StateFlows para el dialog de edición
     val showEditDialog by viewModel.showEditDialog.collectAsState()
     val palletToEdit by viewModel.palletToEdit.collectAsState()
+
+    // NUEVOS StateFlows para el dialog de eliminación
+    val showDeleteDialog by viewModel.showDeleteDialog.collectAsState()
+    val palletToDelete by viewModel.palletToDelete.collectAsState()
+    val successMessage by viewModel.successMessage.collectAsState()
 
     Scaffold(
         topBar = {
@@ -108,8 +116,10 @@ fun PalletListScreen(
                         PalletCard(
                             pallet = pallet,
                             onEditClick = { palletToEdit ->
-                                // NUEVO: Usar el ViewModel para mostrar el dialog de edición
                                 viewModel.showPalletEditDialog(palletToEdit)
+                            },
+                            onDeleteClick = { palletToDelete -> // NUEVO callback
+                                viewModel.showDeleteConfirmationDialog(palletToDelete)
                             }
                         )
                     }
@@ -121,6 +131,7 @@ fun PalletListScreen(
         if (showEditDialog && palletToEdit != null) {
             PalletEditDialog(
                 pallet = palletToEdit!!,
+                viewModel = viewModel,
                 onSave = { editedPallet ->
                     viewModel.savePalletEdits(editedPallet)
                 },
@@ -129,16 +140,60 @@ fun PalletListScreen(
                 }
             )
         }
+
+        // NUEVO: Dialog de confirmación de eliminación
+        if (showDeleteDialog && palletToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissDeleteDialog() },
+                title = { Text("Confirmar Eliminación") },
+                text = {
+                    Text("¿Está seguro de eliminar el pallet ${palletToDelete!!.numeroPallet}? Esta acción no se puede deshacer.")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deletePallet(palletToDelete!!)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Eliminar")
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = { viewModel.dismissDeleteDialog() }
+                    ) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+
+        // NUEVO: Mostrar mensajes de éxito
+        LaunchedEffect(successMessage) {
+            successMessage?.let { message ->
+                Log.d("PalletListScreen", "✅ $message")
+                viewModel.clearSuccessMessage()
+            }
+        }
     }
 }
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PalletCard(
     pallet: Pallet,
-    onEditClick: (Pallet) -> Unit
+    onEditClick: (Pallet) -> Unit,
+    onDeleteClick: (Pallet) -> Unit // NUEVO parámetro
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = { /* Tap normal - no hace nada */ },
+                onLongClick = { onDeleteClick(pallet) } // NUEVO: Long press para eliminar
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

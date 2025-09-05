@@ -32,9 +32,14 @@ class SignalRService {
     // Estados que la UI puede observar
     private val _connectionState = MutableStateFlow(false)
     val connectionState: StateFlow<Boolean> = _connectionState.asStateFlow()
-
+    // Agregar después de las otras propiedades StateFlow (línea ~35)
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
     private val _activeTrip = MutableStateFlow<Trip?>(null)
     val activeTrip: StateFlow<Trip?> = _activeTrip.asStateFlow()
+
+    private val _variedadesList = MutableStateFlow<List<String>>(emptyList())
+    val variedadesList: StateFlow<List<String>> = _variedadesList.asStateFlow()
 
     private val _palletProcessed = MutableStateFlow<Pallet?>(null)
     val palletProcessed: StateFlow<Pallet?> = _palletProcessed.asStateFlow()
@@ -159,6 +164,20 @@ class SignalRService {
                 }
             }, String::class.java, Any::class.java, String::class.java)
 
+            on("VariedadesListReceived", { variedadesData: Any ->
+                Log.d(TAG, "📋 Lista de variedades recibida desde escritorio")
+
+                try {
+                    val variedadesList = parseVariedadesListFromJson(variedadesData)
+                    GlobalScope.launch(Dispatchers.Main) {
+                        _variedadesList.value = variedadesList
+                        Log.d(TAG, "✅ Lista de variedades actualizada - Count: ${variedadesList.size}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error parseando lista de variedades: ${e.message}")
+                }
+            }, Any::class.java)
+
             // NUEVO: Para sincronización de lista completa - NO muestra ventana
             on("PalletListUpdated", { palletsData: Any ->
                 Log.d(TAG, "📋 Lista de pallets actualizada desde escritorio")
@@ -183,6 +202,16 @@ class SignalRService {
                     }
                 }
             }, String::class.java, String::class.java)
+
+            // Reemplazar el listener existente con este código mejorado
+            on("PalletOperationSuccess", { tripId: String, message: String, deviceId: String ->
+                if (deviceId == this@SignalRService.deviceId) {
+                    Log.d(TAG, "✅ Operación exitosa recibida: $message")
+                    GlobalScope.launch(Dispatchers.Main) {
+                        _successMessage.value = message
+                    }
+                }
+            }, String::class.java, String::class.java, String::class.java)
 
             onClosed { exception ->
                 Log.w(TAG, "🔌 Conexión cerrada: ${exception?.message}")
@@ -375,6 +404,48 @@ class SignalRService {
         }
     }
 
+// NUEVO: Enviar solicitud de eliminación de pallet
+    suspend fun deletePalletFromTrip(tripId: String, palletNumber: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            if (hubConnection?.connectionState == HubConnectionState.CONNECTED) {
+                hubConnection?.invoke("DeletePalletFromMobile", tripId, palletNumber, deviceId)
+                Log.d(TAG, "🗑️ Solicitud de eliminación enviada para pallet: $palletNumber")
+                return@withContext true
+            }
+            return@withContext false
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error enviando solicitud de eliminación: ${e.message}")
+            throw e
+        }
+    }
+
+    // Método para solicitar variedades
+    suspend fun requestVariedades(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            if (hubConnection?.connectionState == HubConnectionState.CONNECTED) {
+                hubConnection?.invoke("SendVariedadesToMobile", deviceId)
+                Log.d(TAG, "✅ Solicitud de variedades enviada")
+                return@withContext true
+            }
+            return@withContext false
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error solicitando variedades: ${e.message}")
+            return@withContext false
+        }
+    }
+
+    // Helper para parsear variedades
+    private fun parseVariedadesListFromJson(variedadesData: Any): List<String> {
+        return try {
+            val json = gson.toJson(variedadesData)
+            val listType = object : TypeToken<List<String>>() {}.type
+            gson.fromJson(json, listType) ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parseando lista de variedades: ${e.message}")
+            emptyList()
+        }
+    }
+
     // Métodos públicos para control de reconexión
     suspend fun forceReconnect(): Boolean {
         Log.d(TAG, "🔄 Forzando reconexión...")
@@ -395,5 +466,9 @@ class SignalRService {
     fun clearStates() {
         _palletProcessed.value = null
         _palletError.value = null
+    }
+    // Agregar después del método clearStates()
+    fun clearSuccessMessage() {
+        _successMessage.value = null
     }
 }

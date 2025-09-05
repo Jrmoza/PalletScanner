@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.despacho.palletscanner.viewmodels.MainViewModel
 import com.despacho.palletscanner.ui.components.PalletEditDialog
 import com.despacho.palletscanner.scanner.BarcodeScanner
+import androidx.compose.material.icons.filled.Refresh
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,12 +184,30 @@ fun MainScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Ver Lista de Pallets (${scannedPallets.size})")
             }
+            Button(
+                onClick = {
+                    viewModel.forceReconnect()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                //enabled = !connectionState,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("🔄 Sincronizar")
+            }
         }
+        // NUEVO: Botón de sincronización (AGREGAR AQUÍ)
+
+
 
         // Dialog de edición de pallet
         if (showEditDialog && palletToEdit != null) {
             PalletEditDialog(
                 pallet = palletToEdit!!,
+                viewModel = viewModel, // AGREGAR ESTA LÍNEA
                 onSave = { editedPallet ->
                     viewModel.savePalletEdits(editedPallet)
                 },
