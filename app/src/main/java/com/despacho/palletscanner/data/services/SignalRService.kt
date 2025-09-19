@@ -213,6 +213,31 @@ class SignalRService {
                 }
             }, String::class.java, String::class.java, String::class.java)
 
+            // NUEVO: Manejo del evento TripFinalized para sincronización automática
+            on("TripFinalized", { tripId ->
+                Log.d(TAG, "🏁 Viaje finalizado recibido: $tripId")
+
+                // Limpiar inmediatamente la lista de pallets
+                _palletListFlow.value = emptyList()
+                Log.d(TAG, "🧹 Lista de pallets limpiada automáticamente")
+
+                // Mostrar mensaje al usuario (opcional)
+                GlobalScope.launch(Dispatchers.Main) {
+                    _successMessage.value = "Viaje finalizado. Actualizando datos..."
+                }
+
+                // Solicitar automáticamente el nuevo viaje activo después de 1 segundo
+                GlobalScope.launch(Dispatchers.IO) {
+                    delay(1000)
+                    try {
+                        requestActiveTrip()
+                        Log.d(TAG, "🔄 Solicitando nuevo viaje activo automáticamente")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Error solicitando viaje activo tras finalización: ${e.message}")
+                    }
+                }
+            }, String::class.java)
+
             onClosed { exception ->
                 Log.w(TAG, "🔌 Conexión cerrada: ${exception?.message}")
                 GlobalScope.launch(Dispatchers.Main) {
@@ -352,7 +377,7 @@ class SignalRService {
     }
 
     // Solicitar información del viaje activo
-    private suspend fun requestActiveTrip() {
+     suspend fun requestActiveTrip() {
         try {
             hubConnection?.invoke("RequestActiveTrip", deviceId)
             Log.d(TAG, "✅ Solicitud de viaje activo enviada")

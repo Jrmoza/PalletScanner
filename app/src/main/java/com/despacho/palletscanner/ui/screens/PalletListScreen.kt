@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.despacho.palletscanner.data.models.Pallet
 import com.despacho.palletscanner.viewmodels.MainViewModel
 import com.despacho.palletscanner.ui.components.PalletEditDialog
@@ -18,6 +19,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.runtime.LaunchedEffect
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PalletListScreen(
@@ -180,21 +182,30 @@ fun PalletListScreen(
         }
     }
 }
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PalletCard(
     pallet: Pallet,
     onEditClick: (Pallet) -> Unit,
-    onDeleteClick: (Pallet) -> Unit // NUEVO parámetro
+    onDeleteClick: (Pallet) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(
                 onClick = { /* Tap normal - no hace nada */ },
-                onLongClick = { onDeleteClick(pallet) } // NUEVO: Long press para eliminar
+                onLongClick = { onDeleteClick(pallet) }
             ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        // NUEVO: Color diferente para pallets bicolor
+        colors = CardDefaults.cardColors(
+            containerColor = if (pallet.isE50G6CB) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.surface
+            }
+        )
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -205,11 +216,22 @@ private fun PalletCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = pallet.numeroPallet,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        text = pallet.numeroPallet,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // NUEVO: Indicador de tipo de pallet
+                    if (pallet.isE50G6CB) {
+                        Text(
+                            text = "BICOLOR E50G6CB",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
                 OutlinedButton(
                     onClick = { onEditClick(pallet) },
@@ -229,7 +251,8 @@ private fun PalletCard(
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    InfoRow("Variedad:", pallet.variedad)
+                    // NUEVO: Mostrar variedades usando la propiedad calculada
+                    InfoRow("Variedad:", pallet.varietyDisplay)
                     InfoRow("Calibre:", pallet.calibre)
                     InfoRow("Embalaje:", pallet.embalaje)
                 }
@@ -240,9 +263,36 @@ private fun PalletCard(
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    InfoRow("N° Cajas:", pallet.numeroDeCajas.toString())
+                    // NUEVO: Mostrar cajas usando la propiedad calculada
+                    InfoRow("N° Cajas:", pallet.totalCajasDisplay)
                     InfoRow("Peso Unit.:", "${pallet.pesoUnitario} kg")
                     InfoRow("Peso Total:", "${pallet.pesoTotal} kg")
+                }
+            }
+
+            // NUEVO: Información adicional para pallets bicolor
+            if (pallet.isE50G6CB && !pallet.segundaVariedad.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Desglose Bicolor:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        InfoRow("Var. 1:", "${pallet.variedad} (${pallet.numeroDeCajas})")
+                        InfoRow("Var. 2:", "${pallet.segundaVariedad} (${pallet.cajasSegundaVariedad})")
+                    }
                 }
             }
         }

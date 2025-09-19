@@ -41,8 +41,13 @@ class MainViewModel : ViewModel() {
     private val _palletToEdit = MutableStateFlow<Pallet?>(null)
     val palletToEdit: StateFlow<Pallet?> = _palletToEdit.asStateFlow()
 
+    // NUEVO: Estados específicos para pallets bicolor
+    private val _showBicolorFields = MutableStateFlow(false)
+    val showBicolorFields: StateFlow<Boolean> = _showBicolorFields.asStateFlow()
+
     companion object {
         private const val TAG = "MainViewModel"
+        private const val BICOLOR_EMBALAJE = "E50G6CB"
     }
 
     init {
@@ -51,28 +56,53 @@ class MainViewModel : ViewModel() {
             palletProcessed.collect { pallet ->
                 pallet?.let {
                     Log.d(TAG, "📦 Pallet procesado recibido: ${it.numeroPallet}")
+
+                    // NUEVO: Detectar si es pallet bicolor E50G6CB
+                    if (it.isE50G6CB) {
+                        Log.d(TAG, "🎨 Pallet bicolor E50G6CB detectado: ${it.numeroPallet}")
+                        _showBicolorFields.value = true
+                    } else {
+                        _showBicolorFields.value = false
+                    }
+
                     // SOLO mostrar dialog de edición, NO agregar a lista
                     showPalletEditDialog(it)
                 }
             }
         }
-
-        // NUEVO: Observar mensajes de éxito (SEPARADO del observador anterior)
-        viewModelScope.launch {
-            successMessage.collect { message ->
-                message?.let {
-                    Log.d(TAG, "✅ Mensaje de éxito recibido: $it")
-                    // El mensaje se mostrará en la UI y luego se limpiará automáticamente
-                }
-            }
-        }
-
         // NUEVO: Observar lista sincronizada del escritorio
         viewModelScope.launch {
             scannedPallets.collect { pallets ->
                 Log.d(TAG, "📋 Lista sincronizada actualizada - Count: ${pallets.size}")
+
+                // NUEVO: Contar pallets bicolor para estadísticas
+                val bicolorCount = pallets.count { it.isE50G6CB }
+                if (bicolorCount > 0) {
+                    Log.d(TAG, "🎨 Pallets bicolor en lista: $bicolorCount")
+                }
             }
         }
+        // NUEVO: Observar mensajes de finalización de viaje para sincronización automática
+        viewModelScope.launch {
+            successMessage.collect { message ->
+                message?.let {
+                    Log.d(TAG, "✅ Mensaje del sistema recibido: $it")
+
+                    // Detectar si es un mensaje de viaje finalizado
+                    if (it.contains("Viaje finalizado", ignoreCase = true)) {
+                        Log.d(TAG, "🏁 Detectado mensaje de viaje finalizado - Iniciando sincronización automática")
+
+                        // Solicitar automáticamente el nuevo viaje activo después de un breve delay
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(1500) // Esperar 1.5 segundos
+                            Log.d(TAG, "🔄 Solicitando datos del nuevo viaje activo automáticamente...")
+                            signalRService.requestActiveTrip()
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     fun connectToServer(serverConfig: ServerConfiguration) {
@@ -85,6 +115,7 @@ class MainViewModel : ViewModel() {
 
     fun scanPallet(palletNumber: String) {
         viewModelScope.launch {
+            signalRService.clearStates()
             Log.d(TAG, "📱 Enviando pallet escaneado: $palletNumber")
             val sent = signalRService.sendPalletNumber(palletNumber)
             if (!sent) {
@@ -95,6 +126,7 @@ class MainViewModel : ViewModel() {
 
     fun clearStates() {
         signalRService.clearStates()
+        _showBicolorFields.value = false // NUEVO: Limpiar estado bicolor
         Log.d(TAG, "🧹 Estados limpiados")
     }
 
@@ -102,20 +134,54 @@ class MainViewModel : ViewModel() {
     fun showPalletEditDialog(pallet: Pallet) {
         _palletToEdit.value = pallet
         _showEditDialog.value = true
-        Log.d(TAG, "📝 Mostrando dialog de edición para pallet: ${pallet.numeroPallet}")
+
+        // NUEVO: Configurar campos bicolor según el tipo de pallet
+        _showBicolorFields.value = pallet.isE50G6CB
+
+        Log.d(TAG, "📝 Mostrando dialog de edición para pallet: ${pallet.numeroPallet} (Bicolor: ${pallet.isE50G6CB})")
     }
 
     // Método para cerrar el dialog de edición
     fun dismissEditDialog() {
         _showEditDialog.value = false
         _palletToEdit.value = null
+        _showBicolorFields.value = false // NUEVO: Ocultar campos bicolor
         Log.d(TAG, "❌ Dialog de edición cerrado")
     }
 
-    // Método para guardar pallet editado
+    // NUEVO: Método para validar datos de pallet bicolor antes de guardar
+    private fun validateBicolorPallet(pallet: Pallet): Boolean {
+        if (!pallet.isE50G6CB) return true // No es bicolor, validación normal
+
+        // Validar que tenga segunda variedad y cajas para ambas variedades
+        if (pallet.segundaVariedad.isNullOrBlank()) {
+            Log.w(TAG, "⚠️ Pallet bicolor sin segunda variedad")
+            return false
+        }
+
+        if (pallet.numeroDeCajas <= 0 || pallet.cajasSegundaVariedad <= 0) {
+            Log.w(TAG, "⚠️ Pallet bicolor con cantidades de cajas inválidas")
+            return false
+        }
+
+        return true
+    }
+
+    // Método para guardar pallet editado (ACTUALIZADO para bicolor)
     fun savePalletEdits(editedPallet: Pallet) {
         viewModelScope.launch {
             Log.d(TAG, "💾 Guardando ediciones del pallet: ${editedPallet.numeroPallet}")
+
+            // NUEVO: Validar datos bicolor antes de enviar
+            if (!validateBicolorPallet(editedPallet)) {
+                Log.e(TAG, "❌ Validación de pallet bicolor falló")
+                return@launch
+            }
+
+            if (editedPallet.isE50G6CB) {
+                Log.d(TAG, "🎨 Guardando pallet bicolor - Variedad 1: ${editedPallet.variedad} (${editedPallet.numeroDeCajas}), Variedad 2: ${editedPallet.segundaVariedad} (${editedPallet.cajasSegundaVariedad})")
+            }
+
             val sent = signalRService.sendPalletWithEdits(editedPallet)
             if (sent) {
                 Log.d(TAG, "✅ Ediciones enviadas exitosamente")
@@ -136,6 +202,23 @@ class MainViewModel : ViewModel() {
     fun getTotalPalletsCount(): Int {
         return scannedPallets.value.size
     }
+
+    // NUEVO: Método para obtener conteo de pallets bicolor
+    fun getBicolorPalletsCount(): Int {
+        return scannedPallets.value.count { it.isE50G6CB }
+    }
+
+    // NUEVO: Método para obtener total de cajas considerando pallets bicolor
+    fun getTotalCajasCount(): Int {
+        return scannedPallets.value.sumOf { pallet ->
+            if (pallet.isE50G6CB) {
+                pallet.numeroDeCajas + pallet.cajasSegundaVariedad
+            } else {
+                pallet.numeroDeCajas
+            }
+        }
+    }
+
     // Método para cargar variedades al mostrar dialog
     fun loadVariedadesForDialog() {
         viewModelScope.launch {
@@ -145,6 +228,7 @@ class MainViewModel : ViewModel() {
             }
         }
     }
+
     // NUEVO: Método para mostrar dialog de confirmación de eliminación
     fun showDeleteConfirmationDialog(pallet: Pallet) {
         _palletToDelete.value = pallet
@@ -192,6 +276,7 @@ class MainViewModel : ViewModel() {
     fun clearSuccessMessage() {
         signalRService.clearSuccessMessage()
     }
+
     // Método para forzar reconexión desde UI
     fun forceReconnect() {
         viewModelScope.launch {

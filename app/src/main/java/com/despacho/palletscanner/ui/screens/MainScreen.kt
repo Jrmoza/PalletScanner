@@ -35,7 +35,8 @@ fun MainScreen(
     var manualInput by remember { mutableStateOf("") }
     // NUEVO: Estado para mostrar cámara
     var showCamera by remember { mutableStateOf(false) }
-
+// NUEVO: Observar mensajes de éxito para notificaciones de viaje finalizado
+    val successMessage by viewModel.successMessage.collectAsState()
     Scaffold(
         topBar = {
             TopAppBar(
@@ -173,7 +174,32 @@ fun MainScreen(
                     )
                 }
             }
+// NUEVO: Mostrar notificaciones de éxito (viaje finalizado, etc.)
+            successMessage?.let { message ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "ℹ️ $message",
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
 
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Button(
+                            onClick = { viewModel.clearSuccessMessage() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Entendido")
+                        }
+                    }
+                }
+            }
             // Botón para ver lista de pallets
             Button(
                 onClick = onNavigateToPalletList,
