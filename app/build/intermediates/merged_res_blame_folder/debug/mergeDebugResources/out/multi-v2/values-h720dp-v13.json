@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.despacho.palletscanner.app-mergeDebugResources-57:/values-h720dp-v13/values-h720dp-v13.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\M4A1S\\.gradle\\caches\\8.13\\transforms\\5f7b8ae868adb1b85f6adb3c19ef21c5\\transformed\\appcompat-1.1.0\\res\\values-h720dp-v13\\values-h720dp-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "66",
+                        "endOffsets": "117"
+                    }
+                }
+            ]
+        }
+    ]
+}

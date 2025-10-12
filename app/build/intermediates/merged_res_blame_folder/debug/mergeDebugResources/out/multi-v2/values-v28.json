@@ -1,0 +1,28 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.despacho.palletscanner.app-mergeDebugResources-57:/values-v28/values-v28.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\M4A1S\\.gradle\\caches\\8.13\\transforms\\5f7b8ae868adb1b85f6adb3c19ef21c5\\transformed\\appcompat-1.1.0\\res\\values-v28\\values-v28.xml",
+                    "from": {
+                        "startLines": "2,3,4,8",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "55,130,217,447",
+                        "endLines": "2,3,7,11",
+                        "endColumns": "74,86,12,12",
+                        "endOffsets": "125,212,442,684"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,8",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "55,130,217,397",
+                        "endLines": "2,3,7,11",
+                        "endColumns": "74,86,12,12",
+                        "endOffsets": "125,212,392,584"
+                    }
+                }
+            ]
+        }
+    ]
+}

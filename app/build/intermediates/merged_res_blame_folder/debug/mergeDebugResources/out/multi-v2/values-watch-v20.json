@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.despacho.palletscanner.app-mergeDebugResources-57:/values-watch-v20/values-watch-v20.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\M4A1S\\.gradle\\caches\\8.13\\transforms\\5f7b8ae868adb1b85f6adb3c19ef21c5\\transformed\\appcompat-1.1.0\\res\\values-watch-v20\\values-watch-v20.xml",
+                    "from": {
+                        "startLines": "2,5,8",
+                        "startColumns": "4,4,4",
+                        "startOffsets": "55,214,385",
+                        "endLines": "4,7,10",
+                        "endColumns": "12,12,12",
+                        "endOffsets": "209,380,553"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.despacho.palletscanner.app-mergeDebugResources-57:/values-xlarge-v4/values-xlarge-v4.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\M4A1S\\.gradle\\caches\\8.13\\transforms\\5f7b8ae868adb1b85f6adb3c19ef21c5\\transformed\\appcompat-1.1.0\\res\\values-xlarge-v4\\values-xlarge-v4.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7",
+                        "startColumns": "4,4,4,4,4,4",
+                        "startOffsets": "55,126,197,267,337,405",
+                        "endColumns": "70,70,69,69,67,67",
+                        "endOffsets": "121,192,262,332,400,468"
+                    }
+                }
+            ]
+        }
+    ]
+}
