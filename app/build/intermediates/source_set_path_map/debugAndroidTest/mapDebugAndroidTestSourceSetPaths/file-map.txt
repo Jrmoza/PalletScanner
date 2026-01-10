@@ -1,0 +1,4 @@
+com.despacho.palletscanner.test.app-androidTest-0 D:\DOCUMENTOS\APK DESPACHO\PalletScanner\app\build\generated\res\resValues\androidTest\debug
+com.despacho.palletscanner.test.app-mergeDebugAndroidTestResources-1 D:\DOCUMENTOS\APK DESPACHO\PalletScanner\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.despacho.palletscanner.test.app-mergeDebugAndroidTestResources-2 D:\DOCUMENTOS\APK DESPACHO\PalletScanner\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.despacho.palletscanner.test.app-debugAndroidTest-3 D:\DOCUMENTOS\APK DESPACHO\PalletScanner\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
